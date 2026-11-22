@@ -201,6 +201,11 @@ trino_dialect.patch_lexer_matchers(
 )
 
 trino_dialect.replace(
+    # `?` is a positional parameter in a prepared statement, bound by EXECUTE
+    # ... USING. https://trino.io/docs/current/sql/prepare.html
+    LiteralGrammar=ansi_dialect.get_grammar("LiteralGrammar").copy(
+        insert=[Ref("ParameterizedSegment")]
+    ),
     DateTimeLiteralGrammar=OneOf(
         Sequence(
             OneOf("DATE", "TIME", "TIMESTAMP"),
@@ -696,6 +701,7 @@ class StatementSegment(ansi.StatementSegment):
         Ref("CreateMaterializedViewStatementSegment"),
         Ref("CreateTableStatementSegment"),
         Ref("CreateViewStatementSegment"),
+        Ref("DeallocateStatementSegment"),
         Ref("DeleteStatementSegment"),
         Ref("DescribeStatementSegment"),
         Ref("DropFunctionStatementSegment"),
@@ -704,9 +710,11 @@ class StatementSegment(ansi.StatementSegment):
         Ref("DropSchemaStatementSegment"),
         Ref("DropTableStatementSegment"),
         Ref("DropViewStatementSegment"),
+        Ref("ExecuteStatementSegment"),
         Ref("ExplainStatementSegment"),
         Ref("InsertStatementSegment"),
         Ref("MergeStatementSegment"),
+        Ref("PrepareStatementSegment"),
         Ref("SelectableGrammar"),
         Ref("SetSchemaStatementSegment"),
         Ref("ShowStatementSegment"),
@@ -716,6 +724,63 @@ class StatementSegment(ansi.StatementSegment):
         Ref("UseStatementSegment"),
         Ref("SetSessionStatementSegment"),
         terminators=[Ref("DelimiterGrammar")],
+    )
+
+
+class ParameterizedSegment(BaseSegment):
+    """A positional parameter marker `?` in a prepared statement.
+
+    https://trino.io/docs/current/sql/prepare.html
+    """
+
+    type = "parameterized_expression"
+    match_grammar: Matchable = Ref("QuestionMarkSegment")
+
+
+class PrepareStatementSegment(BaseSegment):
+    """A `PREPARE` statement.
+
+    https://trino.io/docs/current/sql/prepare.html
+    """
+
+    type = "prepare_statement"
+    match_grammar: Matchable = Sequence(
+        "PREPARE",
+        Ref("ObjectReferenceSegment"),
+        "FROM",
+        Ref("StatementSegment"),
+    )
+
+
+class ExecuteStatementSegment(BaseSegment):
+    """An `EXECUTE` or `EXECUTE IMMEDIATE` statement.
+
+    https://trino.io/docs/current/sql/execute.html
+    https://trino.io/docs/current/sql/execute-immediate.html
+    """
+
+    type = "execute_statement"
+    match_grammar: Matchable = Sequence(
+        "EXECUTE",
+        OneOf(
+            Sequence("IMMEDIATE", Ref("QuotedLiteralSegment")),
+            Ref("ObjectReferenceSegment"),
+        ),
+        Sequence("USING", Delimited(Ref("ExpressionSegment")), optional=True),
+    )
+
+
+class DeallocateStatementSegment(BaseSegment):
+    """A `DEALLOCATE PREPARE` statement.
+
+    https://trino.io/docs/current/sql/deallocate-prepare.html
+    """
+
+    type = "deallocate_statement"
+    match_grammar: Matchable = Sequence(
+        "DEALLOCATE",
+        "PREPARE",
+        Ref("ObjectReferenceSegment"),
     )
 
 
