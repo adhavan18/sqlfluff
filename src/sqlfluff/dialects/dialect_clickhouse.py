@@ -2373,25 +2373,23 @@ class TruncateDatabaseStatementSegment(BaseSegment):
 class OptimizeTableStatementSegment(BaseSegment):
     """An `OPTIMIZE TABLE` statement.
 
+    Either a regular optimize, or a `DRY RUN PARTS` simulation of merging the
+    listed parts (which can't be combined with `PARTITION` or `FINAL`).
+
     As specified in
     https://clickhouse.com/docs/en/sql-reference/statements/optimize
     """
 
     type = "optimize_table_statement"
 
-    match_grammar: Matchable = Sequence(
-        "OPTIMIZE",
-        "TABLE",
-        Ref("TableReferenceSegment"),
-        Ref("OnClusterClauseSegment", optional=True),
-        Sequence("PARTITION", Ref("PartitionExpressionGrammar"), optional=True),
-        OneOf("FINAL", "FORCE", optional=True),
+    _deduplicate = Sequence(
+        "DEDUPLICATE",
         Sequence(
-            "DEDUPLICATE",
-            Sequence(
-                "BY",
+            "BY",
+            # Any mix of `*` or `COLUMNS('regex')` (either narrowed by EXCEPT)
+            # and expressions, e.g. `BY COLUMNS('c.*'), toDate(ts)`.
+            Delimited(
                 OneOf(
-                    # `*` or `COLUMNS('regex')`, either one narrowed by EXCEPT
                     Sequence(
                         OneOf(
                             Ref("StarSegment"),
@@ -2399,10 +2397,34 @@ class OptimizeTableStatementSegment(BaseSegment):
                         ),
                         Ref("ExceptClauseSegment", optional=True),
                     ),
-                    Delimited(Ref("ColumnReferenceSegment")),
+                    Ref("ExpressionSegment"),
                 ),
-                optional=True,
             ),
+            optional=True,
+        ),
+        optional=True,
+    )
+
+    match_grammar: Matchable = Sequence(
+        "OPTIMIZE",
+        "TABLE",
+        Ref("TableReferenceSegment"),
+        OneOf(
+            Sequence(
+                "DRY",
+                "RUN",
+                "PARTS",
+                Delimited(Ref("QuotedLiteralSegment")),
+                _deduplicate,
+                Ref.keyword("CLEANUP", optional=True),
+            ),
+            Sequence(
+                Ref("OnClusterClauseSegment", optional=True),
+                Sequence("PARTITION", Ref("PartitionExpressionGrammar"), optional=True),
+                OneOf("FINAL", "FORCE", optional=True),
+                _deduplicate,
+            ),
+            # a bare `OPTIMIZE TABLE x` matches neither branch
             optional=True,
         ),
     )

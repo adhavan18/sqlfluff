@@ -3,7 +3,7 @@
 # computed by SQLFluff when running the tests. Please run
 # `python test/generate_parse_fixture_yml.py`  to generate them after adding or
 # altering SQL files.
-_hash: 4d39feebd3f04ac7acb27518a78b47b76b175eece3239cffa6bf3a6a065c1eb0
+_hash: a119de37f704baa4f402fddd231ab93f153fa73fc27d3f543871dea071f4d7a2
 file:
 - statement:
     optimize_table_statement:
@@ -83,11 +83,13 @@ file:
         naked_identifier: x
     - keyword: DEDUPLICATE
     - keyword: BY
-    - column_reference:
-        naked_identifier: col1
+    - expression:
+        column_reference:
+          naked_identifier: col1
     - comma: ','
-    - column_reference:
-        naked_identifier: col2
+    - expression:
+        column_reference:
+          naked_identifier: col2
 - statement_terminator: ;
 - statement:
     optimize_table_statement:
@@ -117,11 +119,13 @@ file:
     - keyword: FINAL
     - keyword: DEDUPLICATE
     - keyword: BY
-    - column_reference:
-        naked_identifier: col1
+    - expression:
+        column_reference:
+          naked_identifier: col1
     - comma: ','
-    - column_reference:
-        naked_identifier: col2
+    - expression:
+        column_reference:
+          naked_identifier: col2
 - statement_terminator: ;
 - statement:
     optimize_table_statement:
@@ -219,4 +223,91 @@ file:
         - comma: ','
         - naked_identifier: col2
         - end_bracket: )
+- statement_terminator: ;
+- statement:
+    optimize_table_statement:
+    - keyword: OPTIMIZE
+    - keyword: TABLE
+    - table_reference:
+        naked_identifier: x
+    - keyword: DEDUPLICATE
+    - keyword: BY
+    - keyword: COLUMNS
+    - bracketed:
+        start_bracket: (
+        quoted_literal: "'col.*'"
+        end_bracket: )
+    - comma: ','
+    - expression:
+        column_reference:
+          naked_identifier: col1
+- statement_terminator: ;
+- statement:
+    optimize_table_statement:
+    - keyword: OPTIMIZE
+    - keyword: TABLE
+    - table_reference:
+        naked_identifier: x
+    - keyword: FINAL
+    - keyword: DEDUPLICATE
+    - keyword: BY
+    - expression:
+        function:
+          function_name:
+            function_name_identifier: toDate
+          function_contents:
+            bracketed:
+              start_bracket: (
+              expression:
+                column_reference:
+                  naked_identifier: ts
+              end_bracket: )
+    - comma: ','
+    - expression:
+        column_reference:
+          naked_identifier: id
+- statement_terminator: ;
+- statement:
+    optimize_table_statement:
+    - keyword: OPTIMIZE
+    - keyword: TABLE
+    - table_reference:
+        naked_identifier: x
+    - keyword: DRY
+    - keyword: RUN
+    - keyword: PARTS
+    - quoted_literal: "'all_1_1_0'"
+    - comma: ','
+    - quoted_literal: "'all_2_2_0'"
+- statement_terminator: ;
+- statement:
+    optimize_table_statement:
+    - keyword: OPTIMIZE
+    - keyword: TABLE
+    - table_reference:
+        naked_identifier: x
+    - keyword: DRY
+    - keyword: RUN
+    - keyword: PARTS
+    - quoted_literal: "'all_1_1_0'"
+    - comma: ','
+    - quoted_literal: "'all_2_2_0'"
+    - keyword: DEDUPLICATE
+- statement_terminator: ;
+- statement:
+    optimize_table_statement:
+    - keyword: OPTIMIZE
+    - keyword: TABLE
+    - table_reference:
+        naked_identifier: x
+    - keyword: DRY
+    - keyword: RUN
+    - keyword: PARTS
+    - quoted_literal: "'all_1_1_0'"
+    - keyword: DEDUPLICATE
+    - keyword: BY
+    - expression:
+        column_reference:
+          naked_identifier: id
+    - keyword: CLEANUP
 - statement_terminator: ;
